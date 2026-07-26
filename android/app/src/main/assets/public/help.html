@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Help — Pantry.Finder</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="logo">Pantry<span class="dot">.</span>Finder</div>
+    <nav>
+      <a href="/index.html">Search</a>
+      <a href="/add-recipe.html">Add a recipe</a>
+      <a href="/help.html">Help</a>
+    </nav>
+  </div>
+</header>
+
+<div class="form-card">
+  <h1>Need help?</h1>
+  <p style="color:var(--ink-soft); font-size:.9rem; margin-top:-.5rem;">
+    Tell us what's going on and we'll get back to you by email.
+  </p>
+
+  <form id="help-form" novalidate>
+    <div class="field" id="field-name">
+      <label for="name">Name</label>
+      <input type="text" id="name" required maxlength="120" />
+      <div class="error">Please enter your name.</div>
+    </div>
+    <div class="field" id="field-email">
+      <label for="email">Email</label>
+      <input type="email" id="email" required maxlength="180" />
+      <div class="error">Please enter a valid email address.</div>
+    </div>
+    <div class="field" id="field-problem">
+      <label for="problem">What's the problem?</label>
+      <textarea id="problem" required></textarea>
+      <div class="error">Please describe the issue.</div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Send</button>
+    <div class="form-message" id="form-message"></div>
+  </form>
+</div>
+
+<footer class="site-footer">
+  Built by you, for your own kitchen. No external recipe sources.
+</footer>
+
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script>
+const form = document.getElementById('help-form');
+const messageEl = document.getElementById('form-message');
+const submitBtn = document.getElementById('submit-btn');
+
+function setErr(id, on) { document.getElementById(id).classList.toggle('has-error', on); }
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const problem = document.getElementById('problem').value.trim();
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  setErr('field-name', !name);
+  setErr('field-email', !emailOk);
+  setErr('field-problem', !problem);
+  if (!name || !emailOk || !problem) return;
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Sending…';
+  try {
+    const res = await fetch(API_BASE + '/api/help', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, problem }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Something went wrong.');
+    messageEl.textContent = body.message;
+    messageEl.className = 'form-message success';
+    form.reset();
+  } catch (err) {
+    messageEl.textContent = err.message;
+    messageEl.className = 'form-message error';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Send';
+  }
+});
+</script>
+</body>
+</html>

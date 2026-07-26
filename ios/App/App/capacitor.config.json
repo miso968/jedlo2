@@ -1,0 +1,7 @@
+{
+	"appId": "sk.pantryfinder.app",
+	"appName": "Pantry Finder",
+	"webDir": "public",
+	"bundledWebRuntime": false,
+	"packageClassList": []
+}

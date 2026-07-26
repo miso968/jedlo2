@@ -1,0 +1,409 @@
+/* ============================================================
+   Recipe Finder — design tokens
+   Palette: warm linen paper + herb green + spice-jar saffron.
+   Display face: Fraunces (characterful serif, editorial/food feel)
+   Body face:   Work Sans (clean, quiet workhorse)
+   Utility face: IBM Plex Mono (for quantities/amounts — reads like
+                 a measured recipe-card figure, not decoration)
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+
+:root {
+  --linen:        #EDE6D6; /* page background */
+  --linen-dark:   #E1D8C2; /* card / input background */
+  --ink:          #2B2A26; /* primary text */
+  --ink-soft:     #6B6558; /* secondary text */
+  --herb:         #4B6146; /* primary accent — green */
+  --herb-dark:    #37472F;
+  --saffron:      #C98A2C; /* secondary accent — warm spice */
+  --saffron-dark: #A66E1E;
+  --line:         #C9BEA4; /* hairline / rule color */
+  --white-paper:  #FAF7EF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--linen);
+  color: var(--ink);
+  font-family: 'Work Sans', sans-serif;
+  margin: 0;
+  min-height: 100vh;
+}
+
+h1, h2, h3, .display {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+a { color: inherit; }
+
+/* ---------- top nav ---------- */
+.site-header {
+  border-bottom: 1px solid var(--line);
+  background: var(--white-paper);
+}
+
+.site-header .wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.site-header .logo {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.site-header .logo .dot { color: var(--saffron); }
+
+.site-header nav a {
+  text-decoration: none;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  margin-left: 1.5rem;
+  border-bottom: 1px solid transparent;
+  transition: border-color .15s ease, color .15s ease;
+}
+.site-header nav a:hover { color: var(--herb-dark); border-color: var(--herb); }
+
+/* ---------- index-card search hero ---------- */
+.index-card {
+  max-width: 720px;
+  margin: 3rem auto 2.5rem;
+  background: var(--white-paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2.25rem 2rem;
+  position: relative;
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.index-card::before {
+  /* punch-hole detail, like a real recipe index card */
+  content: "";
+  position: absolute;
+  top: 1.1rem; left: 1.1rem;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--linen);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.index-card h1 {
+  font-size: 2rem;
+  margin: 0 0 .35rem;
+}
+.index-card .sub {
+  color: var(--ink-soft);
+  margin: 0 0 1.5rem;
+  font-size: .98rem;
+}
+
+.chip-input-wrap {
+  border: 1px solid var(--line);
+  background: var(--linen);
+  border-radius: 3px;
+  padding: .6rem .7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  align-items: center;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  background: var(--herb);
+  color: var(--white-paper);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .78rem;
+  padding: .3rem .55rem;
+  border-radius: 999px;
+}
+.chip button {
+  background: none; border: none; color: var(--white-paper);
+  cursor: pointer; font-size: .85rem; line-height: 1; opacity: .8;
+}
+.chip button:hover { opacity: 1; }
+
+#ingredient-input {
+  flex: 1;
+  min-width: 140px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: .95rem;
+  padding: .3rem;
+  color: var(--ink);
+}
+
+.btn {
+  display: inline-block;
+  font-family: 'Work Sans', sans-serif;
+  font-weight: 600;
+  font-size: .9rem;
+  padding: .65rem 1.3rem;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform .1s ease, background .15s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--herb); color: var(--white-paper); }
+.btn-primary:hover { background: var(--herb-dark); }
+.btn-secondary { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn-secondary:hover { border-color: var(--ink-soft); }
+.btn-block { width: 100%; text-align: center; }
+
+.autocomplete-list {
+  position: relative;
+}
+.autocomplete-items {
+  position: absolute;
+  z-index: 20;
+  left: 0; right: 0; top: calc(100% + 4px);
+  background: var(--white-paper);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.autocomplete-items div {
+  padding: .5rem .7rem;
+  cursor: pointer;
+  font-size: .9rem;
+}
+.autocomplete-items div:hover { background: var(--linen); }
+
+/* ---------- recipe cards ---------- */
+.recipe-grid {
+  max-width: 1080px;
+  margin: 0 auto 3rem;
+  padding: 0 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.recipe-card {
+  background: var(--white-paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform .15s ease, box-shadow .15s ease;
+  display: flex;
+  flex-direction: column;
+}
+.recipe-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(43, 42, 38, 0.08);
+}
+.recipe-card img {
+  width: 100%; height: 150px; object-fit: cover;
+  border-bottom: 1px solid var(--line);
+  background: var(--linen-dark);
+}
+.recipe-card .body { padding: .9rem 1rem 1.1rem; flex: 1; display: flex; flex-direction: column; }
+.recipe-card h3 { font-size: 1.05rem; margin: 0 0 .3rem; }
+.recipe-card .meta { font-size: .8rem; color: var(--ink-soft); margin-bottom: .5rem; }
+
+/* match meter — signature element: filled dots showing ingredient overlap
+   strength, instead of a generic percentage bar */
+.match-meter {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  margin-top: auto;
+  padding-top: .6rem;
+}
+.match-meter .dots { display: flex; gap: 3px; }
+.match-meter .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--line);
+}
+.match-meter .dot.filled { background: var(--saffron); }
+.match-meter .label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .72rem;
+  color: var(--ink-soft);
+  margin-left: .2rem;
+}
+
+.empty-state {
+  max-width: 1080px;
+  margin: 0 auto 3rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+/* ---------- forms (add recipe / help) ---------- */
+.form-card {
+  max-width: 640px;
+  margin: 2.5rem auto;
+  background: var(--white-paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2rem;
+}
+.form-card h1 { font-size: 1.6rem; margin-top: 0; }
+
+.field { margin-bottom: 1.2rem; }
+.field label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: .4rem;
+}
+.field input[type=text],
+.field input[type=number],
+.field input[type=email],
+.field textarea,
+.field select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--linen);
+  border-radius: 3px;
+  padding: .6rem .7rem;
+  font-family: 'Work Sans', sans-serif;
+  font-size: .95rem;
+  color: var(--ink);
+  outline: none;
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color: var(--herb);
+}
+.field textarea { resize: vertical; min-height: 110px; }
+.field .hint { font-size: .78rem; color: var(--ink-soft); margin-top: .3rem; }
+.field .error { font-size: .8rem; color: #A8412C; margin-top: .3rem; display: none; }
+.field.has-error input, .field.has-error textarea { border-color: #A8412C; }
+.field.has-error .error { display: block; }
+
+.ingredient-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: .5rem;
+  margin-bottom: .5rem;
+  align-items: center;
+}
+.ingredient-row input { margin: 0; }
+.remove-row {
+  background: none; border: none; color: var(--ink-soft);
+  cursor: pointer; font-size: 1.1rem; padding: .3rem .5rem;
+}
+.remove-row:hover { color: #A8412C; }
+
+.add-row-btn {
+  background: none;
+  border: 1px dashed var(--line);
+  color: var(--herb-dark);
+  font-size: .85rem;
+  padding: .5rem;
+  width: 100%;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: .3rem;
+}
+.add-row-btn:hover { border-color: var(--herb); }
+
+.form-message {
+  margin-top: 1rem;
+  padding: .7rem .9rem;
+  border-radius: 3px;
+  font-size: .9rem;
+  display: none;
+}
+.form-message.success { display: block; background: #EAF0E3; color: var(--herb-dark); border: 1px solid var(--herb); }
+.form-message.error   { display: block; background: #F5E4DF; color: #A8412C; border: 1px solid #A8412C; }
+
+/* ---------- recipe detail ---------- */
+.recipe-detail {
+  max-width: 760px;
+  margin: 2.5rem auto 4rem;
+  padding: 0 1.5rem;
+}
+.recipe-detail .hero-img {
+  width: 100%; max-height: 340px; object-fit: cover;
+  border-radius: 4px; border: 1px solid var(--line);
+  margin-bottom: 1.5rem;
+  background: var(--linen-dark);
+}
+.recipe-detail h1 { font-size: 2.1rem; margin-bottom: .3rem; }
+.recipe-detail .prep-time {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .85rem;
+  color: var(--ink-soft);
+  margin-bottom: 1.5rem;
+}
+.recipe-detail h2 {
+  font-size: 1.2rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: .4rem;
+  margin-top: 2rem;
+}
+.ingredient-list { list-style: none; padding: 0; margin: 1rem 0; }
+.ingredient-list li {
+  padding: .45rem 0;
+  border-bottom: 1px dotted var(--line);
+  display: flex;
+  justify-content: space-between;
+  font-size: .95rem;
+}
+.ingredient-list .amount { font-family: 'IBM Plex Mono', monospace; color: var(--ink-soft); }
+.instructions { white-space: pre-wrap; line-height: 1.7; font-size: .98rem; }
+
+.back-link {
+  display: inline-block;
+  margin-top: 2rem;
+  font-size: .9rem;
+  color: var(--herb-dark);
+  text-decoration: none;
+  border-bottom: 1px solid var(--herb);
+}
+
+/* ---------- admin ---------- */
+.admin-row {
+  background: var(--white-paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1rem 1.2rem;
+  margin-bottom: .8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.admin-row .title { font-family: 'Fraunces', serif; font-weight: 600; }
+.admin-row .meta { font-size: .8rem; color: var(--ink-soft); }
+
+footer.site-footer {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--ink-soft);
+  font-size: .85rem;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 640px) {
+  .ingredient-row { grid-template-columns: 1fr 1fr auto; }
+  .ingredient-row input:nth-child(3) { grid-column: span 2; }
+}

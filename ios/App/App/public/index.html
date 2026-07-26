@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Recipe Finder — search by what's in your pantry</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="logo">Pantry<span class="dot">.</span>Finder</div>
+    <nav>
+      <a href="/index.html">Search</a>
+      <a href="/add-recipe.html">Add a recipe</a>
+      <a href="/help.html">Help</a>
+    </nav>
+  </div>
+</header>
+
+<div class="index-card">
+  <h1>What's in your pantry?</h1>
+  <p class="sub">Add a few ingredients you already have — we'll find recipes that use them.</p>
+
+  <div class="chip-input-wrap" id="chip-wrap">
+    <input type="text" id="ingredient-input" placeholder="e.g. tomato, then press Enter" autocomplete="off" />
+  </div>
+  <div class="autocomplete-list">
+    <div id="autocomplete-list" class="autocomplete-items"></div>
+  </div>
+
+  <div style="margin-top: 1.1rem; display:flex; gap:.6rem;">
+    <button id="search-btn" class="btn btn-primary">Find recipes</button>
+  </div>
+</div>
+
+<div id="recipes-list"></div>
+
+<footer class="site-footer">
+  Built by you, for your own kitchen. No external recipe sources.
+</footer>
+
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/search.js"></script>
+</body>
+</html>

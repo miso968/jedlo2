@@ -1,0 +1,140 @@
+// Ingredient chip search with live autocomplete + ranked results.
+const selectedIngredients = [];
+
+const chipWrap = document.getElementById('chip-wrap');
+const input = document.getElementById('ingredient-input');
+const autocompleteList = document.getElementById('autocomplete-list');
+const resultsEl = document.getElementById('recipes-list');
+const searchBtn = document.getElementById('search-btn');
+
+function renderChips() {
+  chipWrap.querySelectorAll('.chip').forEach(c => c.remove());
+  selectedIngredients.forEach((name, idx) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `${escapeHtml(name)} <button type="button" aria-label="Remove ${escapeHtml(name)}">&times;</button>`;
+    chip.querySelector('button').addEventListener('click', () => {
+      selectedIngredients.splice(idx, 1);
+      renderChips();
+    });
+    chipWrap.insertBefore(chip, input);
+  });
+}
+
+function addIngredient(name) {
+  const clean = name.trim();
+  if (!clean) return;
+  if (!selectedIngredients.includes(clean.toLowerCase())) {
+    selectedIngredients.push(clean.toLowerCase());
+  }
+  input.value = '';
+  autocompleteList.innerHTML = '';
+  renderChips();
+}
+
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    addIngredient(input.value);
+  } else if (e.key === 'Backspace' && input.value === '' && selectedIngredients.length) {
+    selectedIngredients.pop();
+    renderChips();
+  }
+});
+
+let debounceTimer;
+input.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  const q = input.value.trim();
+  if (!q) { autocompleteList.innerHTML = ''; return; }
+  debounceTimer = setTimeout(async () => {
+    try {
+      const suggestions = await apiGet(`/api/ingredients/suggest?q=${encodeURIComponent(q)}`);
+      autocompleteList.innerHTML = '';
+      suggestions.forEach(name => {
+        const item = document.createElement('div');
+        item.textContent = name;
+        item.addEventListener('click', () => addIngredient(name));
+        autocompleteList.appendChild(item);
+      });
+    } catch {
+      autocompleteList.innerHTML = '';
+    }
+  }, 200);
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.chip-input-wrap') && !e.target.closest('.autocomplete-items')) {
+    autocompleteList.innerHTML = '';
+  }
+});
+
+function renderMatchMeter(matched, total) {
+  const dots = Array.from({ length: total }, (_, i) =>
+    `<span class="dot ${i < matched ? 'filled' : ''}"></span>`
+  ).join('');
+  return `<div class="match-meter"><div class="dots">${dots}</div><span class="label">${matched}/${total} matched</span></div>`;
+}
+
+function renderRecipes(recipes, { withMatch } = {}) {
+  if (recipes.length === 0) {
+    resultsEl.innerHTML = '<div class="empty-state">No recipes found for those ingredients yet. Try removing one, or <a href="/add-recipe.html">add your own</a>.</div>';
+    return;
+  }
+  resultsEl.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'recipe-grid';
+  grid.style.padding = '0';
+  grid.style.margin = '0';
+
+  recipes.forEach(r => {
+    const card = document.createElement('a');
+    card.className = 'recipe-card';
+    card.href = `/recipe.html?id=${r.id}`;
+    card.innerHTML = `
+      <img src="${escapeHtml(resolveImage(r.image))}" alt="${escapeHtml(r.title)}" onerror="this.onerror=null;this.src='uploads/default.png'">
+      <div class="body">
+        <h3>${escapeHtml(r.title)}</h3>
+        <div class="meta">${r.prep_time ? r.prep_time + ' min' : 'Prep time not listed'}</div>
+        ${withMatch ? renderMatchMeter(r.matched_count, r.total_count) : ''}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  resultsEl.appendChild(grid);
+}
+
+async function runSearch() {
+  if (selectedIngredients.length === 0) {
+    loadAllRecipes();
+    return;
+  }
+  resultsEl.innerHTML = '<div class="empty-state">Searching…</div>';
+  try {
+    const recipes = await apiGet(`/api/recipes?ingredients=${encodeURIComponent(selectedIngredients.join(','))}`);
+    renderRecipes(recipes, { withMatch: true });
+  } catch (err) {
+    resultsEl.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function loadAllRecipes() {
+  try {
+    const recipes = await apiGet('/api/recipes');
+    renderRecipes(recipes, { withMatch: false });
+  } catch (err) {
+    resultsEl.innerHTML = `<div class="empty-state">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+searchBtn.addEventListener('click', runSearch);
+
+// Support ?ingredients=a,b,c deep links (e.g. shared search results)
+const params = new URLSearchParams(window.location.search);
+const preset = params.get('ingredients');
+if (preset) {
+  preset.split(',').forEach(name => addIngredient(name));
+  runSearch();
+} else {
+  loadAllRecipes();
+}
