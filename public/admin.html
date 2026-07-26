@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin — Pantry.Finder</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="logo">Pantry<span class="dot">.</span>Finder</div>
+    <nav><a href="/index.html">Search</a></nav>
+  </div>
+</header>
+
+<div class="form-card" style="max-width:720px;">
+  <h1>Pending recipes</h1>
+  <p style="color:var(--ink-soft); font-size:.85rem; margin-top:-.5rem;">
+    This page has no login yet — see the note in README.md before putting it online.
+  </p>
+  <div id="pending-list">Loading…</div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script>
+async function load() {
+  const el = document.getElementById('pending-list');
+  try {
+    const rows = await apiGet('/api/admin/pending');
+    if (rows.length === 0) {
+      el.innerHTML = '<p style="color:var(--ink-soft);">Nothing waiting for review.</p>';
+      return;
+    }
+    el.innerHTML = '';
+    rows.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'admin-row';
+      row.innerHTML = `
+        <div>
+          <div class="title">${escapeHtml(r.title)}</div>
+          <div class="meta">${r.prep_time ? r.prep_time + ' min · ' : ''}submitted ${escapeHtml(r.created_at)}</div>
+        </div>
+        <button class="btn btn-primary" data-id="${r.id}">Approve</button>
+      `;
+      row.querySelector('button').addEventListener('click', async (e) => {
+        e.target.disabled = true;
+        e.target.textContent = 'Approving…';
+        try {
+          await apiPost(`/api/admin/approve/${r.id}`);
+          row.remove();
+        } catch (err) {
+          alert(err.message);
+          e.target.disabled = false;
+          e.target.textContent = 'Approve';
+        }
+      });
+      el.appendChild(row);
+    });
+  } catch (err) {
+    el.innerHTML = `<p>${escapeHtml(err.message)}</p>`;
+  }
+}
+load();
+</script>
+</body>
+</html>

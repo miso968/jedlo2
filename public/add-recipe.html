@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Add a recipe — Pantry.Finder</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="logo">Pantry<span class="dot">.</span>Finder</div>
+    <nav>
+      <a href="/index.html">Search</a>
+      <a href="/add-recipe.html">Add a recipe</a>
+      <a href="/help.html">Help</a>
+    </nav>
+  </div>
+</header>
+
+<div class="form-card">
+  <h1>Add your recipe</h1>
+  <p style="color:var(--ink-soft); font-size:.9rem; margin-top:-.5rem;">
+    New recipes are reviewed before they appear in search results.
+  </p>
+
+  <form id="recipe-form" novalidate>
+    <div class="field" id="field-title">
+      <label for="title">Recipe title</label>
+      <input type="text" id="title" name="title" required maxlength="150" />
+      <div class="error">Please enter a title.</div>
+    </div>
+
+    <div class="field" id="field-prep">
+      <label for="prep_time">Prep time (minutes)</label>
+      <input type="number" id="prep_time" name="prep_time" min="1" max="1440" />
+    </div>
+
+    <div class="field">
+      <label>Ingredients</label>
+      <div id="ingredient-rows"></div>
+      <button type="button" class="add-row-btn" id="add-row-btn">+ Add another ingredient</button>
+      <div class="error" id="ingredients-error" style="display:none;">Add at least one ingredient with a name.</div>
+    </div>
+
+    <div class="field" id="field-instructions">
+      <label for="instructions">Instructions</label>
+      <textarea id="instructions" name="instructions" required placeholder="Step 1...&#10;Step 2..."></textarea>
+      <div class="error">Please enter the preparation steps.</div>
+    </div>
+
+    <div class="field">
+      <label for="image">Photo (optional)</label>
+      <input type="file" id="image" name="image" accept="image/png,image/jpeg,image/webp,image/gif" />
+      <div class="hint">JPG, PNG, WEBP or GIF, up to 5 MB.</div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Submit recipe</button>
+    <div class="form-message" id="form-message"></div>
+  </form>
+</div>
+
+<footer class="site-footer">
+  Built by you, for your own kitchen. No external recipe sources.
+</footer>
+
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/add-recipe.js"></script>
+</body>
+</html>
