@@ -1,0 +1,28 @@
+{
+  "name": "recipe-finder",
+  "version": "1.0.0",
+  "description": "Recipe search and management app based on available ingredients",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node db/seed.js",
+    "mobile:add-android": "npx cap add android",
+    "mobile:add-ios": "npx cap add ios",
+    "mobile:sync": "npx cap sync",
+    "mobile:open-android": "npx cap open android",
+    "mobile:open-ios": "npx cap open ios"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/ios": "^6.1.2"
+  }
+}
