@@ -1,39 +1,39 @@
 // Optional: run with `npm run seed` to populate the database with a few
 // sample, already-approved recipes so the search page isn't empty on first run.
 
-const db = require('./init');
+const ensureSchema = require('./init');
+const pool = require('./pool');
 
 function slugify(title) {
     return title
         .toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip accents
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 }
 
-function findOrCreateIngredient(name) {
+async function findOrCreateIngredient(name) {
     const clean = name.trim().toLowerCase();
-    const existing = db.prepare('SELECT id FROM ingredients WHERE name = ?').get(clean);
-    if (existing) return existing.id;
-    const info = db.prepare('INSERT INTO ingredients (name) VALUES (?)').run(clean);
-    return info.lastInsertRowid;
+    const [existing] = await pool.execute('SELECT id FROM ingredients WHERE name = ?', [clean]);
+    if (existing.length > 0) return existing[0].id;
+    const [result] = await pool.execute('INSERT INTO ingredients (name) VALUES (?)', [clean]);
+    return result.insertId;
 }
 
-function insertRecipe({ title, instructions, prep_time, ingredients }) {
+async function insertRecipe({ title, instructions, prep_time, ingredients }) {
     const slug = slugify(title);
-    const info = db.prepare(`
+    const [result] = await pool.execute(`
         INSERT INTO recipes (title, slug, instructions, prep_time, approved)
         VALUES (?, ?, ?, ?, 1)
-    `).run(title, slug, instructions, prep_time);
+    `, [title, slug, instructions, prep_time]);
 
-    const recipeId = info.lastInsertRowid;
-    const link = db.prepare(`
-        INSERT INTO recipe_ingredients (recipe_id, ingredient_id, amount, unit)
-        VALUES (?, ?, ?, ?)
-    `);
+    const recipeId = result.insertId;
     for (const ing of ingredients) {
-        const ingredientId = findOrCreateIngredient(ing.name);
-        link.run(recipeId, ingredientId, ing.amount || null, ing.unit || null);
+        const ingredientId = await findOrCreateIngredient(ing.name);
+        await pool.execute(
+            'INSERT INTO recipe_ingredients (recipe_id, ingredient_id, amount, unit) VALUES (?, ?, ?, ?)',
+            [recipeId, ingredientId, ing.amount || null, ing.unit || null]
+        );
     }
 }
 
@@ -74,14 +74,24 @@ const sample = [
     },
 ];
 
-const existingCount = db.prepare('SELECT COUNT(*) AS c FROM recipes').get().c;
-if (existingCount > 0) {
-    console.log(`Database already has ${existingCount} recipe(s) — skipping seed.`);
+async function main() {
+    await ensureSchema();
+
+    const [existing] = await pool.execute('SELECT COUNT(*) AS c FROM recipes');
+    if (existing[0].c > 0) {
+        console.log(`Database already has ${existing[0].c} recipe(s) — skipping seed.`);
+        process.exit(0);
+    }
+
+    for (const recipe of sample) {
+        await insertRecipe(recipe);
+    }
+
+    console.log(`Seeded ${sample.length} sample recipes.`);
     process.exit(0);
 }
 
-for (const recipe of sample) {
-    insertRecipe(recipe);
-}
-
-console.log(`Seeded ${sample.length} sample recipes.`);
+main().catch(err => {
+    console.error('Seeding failed:', err.message);
+    process.exit(1);
+});

@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const ensureSchema = require('./db/init');
 const recipesRouter = require('./routes/recipes');
 
 const app = express();
@@ -34,6 +35,17 @@ app.use((err, req, res, next) => {
     res.status(400).json({ error: err.message || 'Unexpected error.' });
 });
 
-app.listen(PORT, () => {
-    console.log(`Recipe Finder running at http://localhost:${PORT}`);
-});
+async function start() {
+    try {
+        await ensureSchema(); // creates tables in the MySQL database if they don't exist yet
+        app.listen(PORT, () => {
+            console.log(`Recipe Finder running at http://localhost:${PORT}`);
+        });
+    } catch (err) {
+        console.error('Failed to connect to the database / apply schema:', err.message);
+        console.error('Check your DB_HOST / DB_USER / DB_PASSWORD / DB_NAME in .env.');
+        process.exit(1);
+    }
+}
+
+start();

@@ -1,43 +1,39 @@
--- Recipe Finder database schema (SQLite)
--- Run automatically by db/init.js on first start.
+-- Recipe Finder database schema (MySQL)
+-- Applied automatically at server startup by db/init.js (ensureSchema()).
 
-PRAGMA foreign_keys = ON;
-
--- One row per recipe
 CREATE TABLE IF NOT EXISTS recipes (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    title         TEXT NOT NULL,
-    slug          TEXT NOT NULL UNIQUE,
-    instructions  TEXT NOT NULL,
-    prep_time     INTEGER,              -- minutes
-    image         TEXT DEFAULT '/uploads/default.png',
-    approved      INTEGER NOT NULL DEFAULT 0, -- 0 = pending moderation, 1 = live
-    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
-);
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    title         VARCHAR(255)  NOT NULL,
+    slug          VARCHAR(255)  NOT NULL,
+    instructions  TEXT          NOT NULL,
+    prep_time     INT           NULL,               -- minutes
+    image         VARCHAR(500)  DEFAULT '/uploads/default.png',
+    approved      TINYINT(1)    NOT NULL DEFAULT 0,  -- 0 = pending moderation, 1 = live
+    created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_recipes_slug (slug),
+    KEY idx_recipes_approved (approved)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- One row per unique ingredient name (deduplicated, case-insensitive)
 CREATE TABLE IF NOT EXISTS ingredients (
-    id    INTEGER PRIMARY KEY AUTOINCREMENT,
-    name  TEXT NOT NULL UNIQUE
-);
+    id    INT AUTO_INCREMENT PRIMARY KEY,
+    name  VARCHAR(150) NOT NULL,
+    UNIQUE KEY uniq_ingredients_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- M:N join table between recipes and ingredients, with quantity/unit metadata
 CREATE TABLE IF NOT EXISTS recipe_ingredients (
-    recipe_id     INTEGER NOT NULL REFERENCES recipes(id)     ON DELETE CASCADE,
-    ingredient_id INTEGER NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
-    amount        TEXT,   -- free-text quantity, e.g. "200", "2"
-    unit          TEXT,   -- free-text unit, e.g. "g", "cups", "cloves"
-    PRIMARY KEY (recipe_id, ingredient_id)
-);
+    recipe_id     INT NOT NULL,
+    ingredient_id INT NOT NULL,
+    amount        VARCHAR(50),
+    unit          VARCHAR(50),
+    PRIMARY KEY (recipe_id, ingredient_id),
+    CONSTRAINT fk_ri_recipe     FOREIGN KEY (recipe_id)     REFERENCES recipes(id)     ON DELETE CASCADE,
+    CONSTRAINT fk_ri_ingredient FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX IF NOT EXISTS idx_recipes_approved ON recipes(approved);
-CREATE INDEX IF NOT EXISTS idx_ingredients_name ON ingredients(name);
-
--- Simple contact/help form submissions
 CREATE TABLE IF NOT EXISTS help_requests (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    name       TEXT NOT NULL,
-    email      TEXT NOT NULL,
-    problem    TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(150) NOT NULL,
+    email      VARCHAR(180) NOT NULL,
+    problem    TEXT         NOT NULL,
+    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
