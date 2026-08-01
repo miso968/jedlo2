@@ -23,15 +23,17 @@
   <h1>What's in your pantry?</h1>
   <p class="sub">Add a few ingredients you already have — we'll find recipes that use them.</p>
 
-  <div class="chip-input-wrap" id="chip-wrap">
+  <div class="chip-input-wrap">
     <input type="text" id="ingredient-input" placeholder="e.g. tomato, then press Enter" autocomplete="off" />
   </div>
   <div class="autocomplete-list">
     <div id="autocomplete-list" class="autocomplete-items"></div>
   </div>
 
-  <div style="margin-top: 1.1rem; display:flex; gap:.6rem;">
-    <button id="search-btn" class="btn btn-primary">Find recipes</button>
+  <div id="checklist" class="checklist" style="margin-top:.75rem;"></div>
+
+  <div style="margin-top: 1.25rem; display:flex; gap:.6rem;">
+    <button id="search-btn" class="btn btn-primary btn-block">Find recipes</button>
   </div>
 </div>
 

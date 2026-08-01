@@ -1,23 +1,23 @@
-// Ingredient chip search with live autocomplete + ranked results.
+// Ingredient checklist search with live autocomplete + ranked results.
 const selectedIngredients = [];
 
-const chipWrap = document.getElementById('chip-wrap');
+const chipWrap = document.getElementById('checklist');
 const input = document.getElementById('ingredient-input');
 const autocompleteList = document.getElementById('autocomplete-list');
 const resultsEl = document.getElementById('recipes-list');
 const searchBtn = document.getElementById('search-btn');
 
 function renderChips() {
-  chipWrap.querySelectorAll('.chip').forEach(c => c.remove());
+  chipWrap.innerHTML = '';
   selectedIngredients.forEach((name, idx) => {
-    const chip = document.createElement('span');
-    chip.className = 'chip';
-    chip.innerHTML = `${escapeHtml(name)} <button type="button" aria-label="Remove ${escapeHtml(name)}">&times;</button>`;
-    chip.querySelector('button').addEventListener('click', () => {
+    const row = document.createElement('div');
+    row.className = 'check-row';
+    row.innerHTML = `<span class="mark">✓</span><span class="name">${escapeHtml(name)}</span><button type="button" aria-label="Remove ${escapeHtml(name)}">&times;</button>`;
+    row.querySelector('button').addEventListener('click', () => {
       selectedIngredients.splice(idx, 1);
       renderChips();
     });
-    chipWrap.insertBefore(chip, input);
+    chipWrap.appendChild(row);
   });
 }
 
@@ -70,10 +70,12 @@ document.addEventListener('click', (e) => {
 });
 
 function renderMatchMeter(matched, total) {
-  const dots = Array.from({ length: total }, (_, i) =>
-    `<span class="dot ${i < matched ? 'filled' : ''}"></span>`
-  ).join('');
-  return `<div class="match-meter"><div class="dots">${dots}</div><span class="label">${matched}/${total} matched</span></div>`;
+  const pct = total > 0 ? Math.round((matched / total) * 100) : 0;
+  return `
+    <div class="match-meter">
+      <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
+      <span class="label">${matched}/${total} matched</span>
+    </div>`;
 }
 
 function renderRecipes(recipes, { withMatch } = {}) {
@@ -84,8 +86,6 @@ function renderRecipes(recipes, { withMatch } = {}) {
   resultsEl.innerHTML = '';
   const grid = document.createElement('div');
   grid.className = 'recipe-grid';
-  grid.style.padding = '0';
-  grid.style.margin = '0';
 
   recipes.forEach(r => {
     const card = document.createElement('a');
