@@ -7,5 +7,5 @@
 // The app bundle has no "same origin" to call, so every request needs the
 // full address of a backend that's actually reachable from the phone.
 window.APP_CONFIG = {
-  API_BASE_URL: '',
+  API_BASE_URL: 'https://jedlo2.onrender.com',
 };

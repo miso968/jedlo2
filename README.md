@@ -1,32 +1,31 @@
 # Pantry.Finder — Recipe Finder by Ingredient
 
 Search, add, and manage recipes based on ingredients you already have.
-Rebuilt from an older PHP/MySQL prototype as a self-contained Node.js app
-with a local SQLite database — no external DB server or credentials needed.
+Rebuilt from an older PHP/MySQL prototype as a Node.js app that connects to
+your existing MySQL database — properly this time, with credentials in
+environment variables and parameterized queries instead of hardcoded
+passwords and string-concatenated SQL.
 
 ## Stack
 
 - **Backend:** Node.js + Express
-- **Database:** SQLite via `better-sqlite3` (synchronous, file-based — one `.db` file, zero setup)
+- **Database:** MySQL (via `mysql2`), connecting to your existing hosted
+  database — no new database service needed
 - **Frontend:** Static HTML + vanilla JS + hand-written CSS (no build step)
-
-SQLite was chosen over PostgreSQL for this project because it needs no server
-process, no connection string, and no credentials to manage or leak — you get
-one `db/recipes.db` file you can back up by copying it. If you later need
-multiple servers writing at once, the schema in `db/schema.sql` is close
-enough to standard SQL that moving to PostgreSQL mainly means swapping
-`better-sqlite3` for a `pg` client.
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env      # adjust PORT etc. if you want
+cp .env.example .env      # fill in your real DB_HOST / DB_USER / DB_PASSWORD / DB_NAME
 npm run seed               # optional: adds 3 sample approved recipes
 npm start
 ```
 
-Then open **http://localhost:3000**.
+Then open **http://localhost:3000**. On first start, `server.js` runs
+`db/init.js`, which creates the `recipes`, `ingredients`,
+`recipe_ingredients`, and `help_requests` tables in your database
+automatically (`CREATE TABLE IF NOT EXISTS`, so it's safe to run every time).
 
 ## Project structure
 
@@ -34,9 +33,10 @@ Then open **http://localhost:3000**.
 recipe-app/
 ├── server.js              # Express app entry point
 ├── db/
-│   ├── schema.sql         # table definitions
-│   ├── init.js            # opens/creates the SQLite file, applies schema
-│   └── seed.js            # optional sample data (npm run seed)
+│   ├── schema.sql          # table definitions (MySQL)
+│   ├── pool.js             # mysql2 connection pool (reads .env)
+│   ├── init.js             # applies schema.sql at startup
+│   └── seed.js             # optional sample data (npm run seed)
 ├── routes/
 │   └── recipes.js         # all /api/* endpoints
 └── public/                # static frontend, served as-is
@@ -53,7 +53,7 @@ recipe-app/
 ## Database schema
 
 - `recipes` — id, title, slug, instructions, prep_time, image, approved, created_at
-- `ingredients` — id, name (unique, case-insensitive by convention — always lowercased before insert)
+- `ingredients` — id, name (unique; always lowercased before insert so it stays case-insensitive)
 - `recipe_ingredients` — join table (recipe_id, ingredient_id, amount, unit)
 - `help_requests` — contact form submissions
 
@@ -73,31 +73,105 @@ already exist, or created automatically — this is handled in
 | POST   | `/api/admin/approve/:id`    | Approve a recipe                               |
 | POST   | `/api/help`                 | Submit a help/contact request                  |
 
-## Security notes (important before deploying)
+## Security notes
 
-1. **No authentication on `/admin.html` or the admin API routes yet.**
-   Anyone who finds that URL can approve recipes. Before putting this online,
-   add at minimum a login check (e.g. `express-session` + a hardcoded admin
-   password from an environment variable, or a proper auth library) in front
-   of the `/api/admin/*` routes.
-2. All SQL queries use parameter binding (`?` placeholders), so user input
+1. **Admin login is now required** for `/admin.html` and every `/api/admin/*`
+   route. Set `ADMIN_PASSWORD` and `SESSION_SECRET` in your environment
+   (locally in `.env`, on Render under Environment Variables). Generate a
+   good session secret with:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+   Without `SESSION_SECRET` set, the server refuses to start (safer than
+   silently running with a weak default).
+2. **Rate limiting** is applied to recipe submissions, help-form submissions,
+   and admin login attempts (`express-rate-limit`) — this blocks scripted
+   spam and brute-force password guessing.
+3. **Honeypot fields** — the "add recipe" and "help" forms include a hidden
+   field real users never see or fill in. If it arrives filled in, the
+   server pretends success but doesn't save anything, which quietly filters
+   out simple bots without tipping them off.
+4. All SQL queries use parameter binding (`?` placeholders), so user input
    can never be interpreted as SQL — this fixes the SQL-injection issues
    present in the original PHP version's `approve_recipees.php` and others.
-3. Credentials now live in `.env` (git-ignored), not hardcoded in source —
-   this fixes the exposed database password in the original PHP files.
-   **If those old files were ever committed or shared, rotate that
-   database password.**
-4. Uploaded images are restricted by MIME type and size (5 MB) and renamed
+5. Credentials live in `.env` (git-ignored) and, when hosted, in your
+   platform's environment-variable settings — never hardcoded in source.
+   **The original PHP files had this exact database's password hardcoded
+   in plain text and were shared outside your server. Rotate that password
+   if you haven't already, then update `DB_PASSWORD` everywhere it's used.**
+6. Uploaded images are restricted by MIME type and size (5 MB) and renamed
    on disk, so a user can't overwrite existing files or upload disguised
    executable content under an image name.
+
+### Required environment variables (full list)
+
+| Variable | Purpose |
+|---|---|
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | MySQL connection |
+| `ADMIN_PASSWORD` | Password for `/admin.html` |
+| `SESSION_SECRET` | Signs admin session cookies — long random string |
+| `PORT` | Set automatically by Render; only needed locally |
+| `UPLOAD_DIR` | Optional; defaults to `public/uploads` |
+
+Add `ADMIN_PASSWORD` and `SESSION_SECRET` to Render's Environment Variables
+the same way you added the `DB_*` ones, then redeploy.
+
+## Deploying the backend for free on Render
+
+Render's free web-service tier works for this app, with one important
+caveat: **Render's free tier has an ephemeral filesystem** — any files
+written locally (like uploaded recipe photos in `public/uploads/`) are
+wiped every time the service restarts or spins down after 15 minutes of
+inactivity. Since this app's actual data (recipes, ingredients) now lives in
+your external MySQL database, not on Render's disk, **your recipe data is
+safe** — only newly uploaded *photos* would be lost on restart, since those
+are still saved to the local disk. If that matters to you, the fix is to
+store uploaded images in your MySQL database as well, or in an external
+object store (S3, Cloudinary, etc.) instead of the local filesystem — happy
+to make that change if you want it.
+
+### Steps in the Render dashboard
+
+1. Push this project to a GitHub (or GitLab) repository — Render deploys
+   from a Git repo, not a zip upload.
+2. In Render: **New +** → **Web Service** → connect that repository.
+3. **Language/Environment:** Node
+4. **Build Command:** `npm install`
+5. **Start Command:** `npm start`
+6. **Instance Type:** Free
+7. Under **Environment Variables**, add:
+   - `DB_HOST` = `db001.nameserver.sk`
+   - `DB_PORT` = `3306` (or your hosting's port, if different)
+   - `DB_USER` = your DB username
+   - `DB_PASSWORD` = your DB password (the new, rotated one)
+   - `DB_NAME` = `webtestsql`
+   - Do **not** set `PORT` — Render sets that automatically and `server.js`
+     already reads `process.env.PORT`.
+8. Click **Deploy**. Render gives you a URL like
+   `https://your-app.onrender.com` once it's live.
+9. Put that URL into `public/js/config.js` as `API_BASE_URL` (see the
+   mobile app section below) if you're building the phone app.
+
+### One more thing to check on your hosting side
+
+Shared hosting providers often block remote MySQL connections by default —
+only allowing connections from the same server (e.g. from PHP scripts on
+that same host). Render's servers connect from outside, over the public
+internet, so **check your hosting control panel for a "Remote MySQL access"
+or "Remote database access" setting** and make sure external connections are
+allowed (some panels want you to whitelist an IP; if Render's IPs aren't
+fixed/whitelistable in your panel, look for an "allow all hosts" or `%`
+wildcard option, and rely on the password + your firewall/host protections
+instead).
 
 ## Notes on the sandbox this was built in
 
 This was written and syntax-checked in an offline sandbox without network
 access, so `npm install` could not be run here to fully execute/test the
-server end-to-end. The code follows the documented APIs for Express,
-better-sqlite3, and multer, but please run `npm install && npm start`
-locally and let me know if anything needs adjusting.
+server end-to-end (and no live MySQL connection was available to test
+against). The code follows the documented APIs for Express, mysql2, and
+multer, but please run `npm install && npm start` locally with your real
+database credentials and let me know if anything needs adjusting.
 
 ## Building the Android/iOS app (Capacitor)
 

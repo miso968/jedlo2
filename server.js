@@ -2,11 +2,33 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const session = require('express-session');
 const ensureSchema = require('./db/init');
 const recipesRouter = require('./routes/recipes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Render (and most hosts) put the app behind a reverse proxy — this is
+// needed so Express correctly detects HTTPS for secure cookies below.
+app.set('trust proxy', 1);
+
+if (!process.env.SESSION_SECRET) {
+    console.error('Missing SESSION_SECRET environment variable. Set it to a long random string before starting the server.');
+    process.exit(1);
+}
+
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: 'auto', // secure cookie automatically when the request is HTTPS (true on Render)
+        sameSite: 'lax',
+        maxAge: 12 * 60 * 60 * 1000, // 12 hours
+    },
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

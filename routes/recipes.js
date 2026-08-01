@@ -6,9 +6,30 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
+const requireAdmin = require('../middleware/requireAdmin');
 
 const router = express.Router();
+
+// ---------- rate limiting ----------
+// Generous enough for a real person filling out a form, tight enough to
+// block scripted spam / brute-force attempts.
+const submitLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many submissions from this device. Please try again later.' },
+});
+
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 8, // deliberately tighter — this guards a password
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many login attempts. Please try again later.' },
+});
 
 // ---------- image upload setup ----------
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'public', 'uploads');
@@ -75,6 +96,14 @@ async function attachIngredients(recipeId, ingredients, connection) {
             [recipeId, ingredientId, ing.amount || null, ing.unit || null]
         );
     }
+}
+
+// Honeypot spam check: forms include a hidden field ("website") that a real
+// person never sees or fills in, but simple bots often auto-fill every
+// field. If it's non-empty, silently pretend success without saving —
+// silence (rather than an error) avoids teaching bots what tripped it.
+function isHoneypotTripped(req) {
+    return Boolean(req.body && req.body.website && String(req.body.website).trim());
 }
 
 async function getIngredientsForRecipe(recipeId) {
@@ -177,9 +206,14 @@ router.get('/recipes/:id', async (req, res) => {
 
 // ---------- POST /api/recipes ----------
 // multipart/form-data: title, instructions, prep_time, ingredients (JSON string), image (file, optional)
-router.post('/recipes', upload.single('image'), async (req, res) => {
+router.post('/recipes', submitLimiter, upload.single('image'), async (req, res) => {
     let connection;
     try {
+        if (isHoneypotTripped(req)) {
+            // Pretend success so the bot doesn't learn anything — just don't save.
+            return res.status(201).json({ message: 'Recipe submitted! It will appear once an admin approves it.' });
+        }
+
         const { title, instructions, prep_time } = req.body;
 
         if (!title || !title.trim()) return res.status(400).json({ error: 'Title is required.' });
@@ -232,10 +266,35 @@ router.post('/recipes', upload.single('image'), async (req, res) => {
     }
 });
 
-// ---------- Admin moderation ----------
+// ---------- Admin auth ----------
+
+// POST /api/admin/login  { password }
+router.post('/admin/login', loginLimiter, (req, res) => {
+    const password = String(req.body.password || '');
+    if (!process.env.ADMIN_PASSWORD) {
+        return res.status(500).json({ error: 'Admin login is not configured on the server (missing ADMIN_PASSWORD).' });
+    }
+    if (password && password === process.env.ADMIN_PASSWORD) {
+        req.session.isAdmin = true;
+        return res.json({ message: 'Logged in.' });
+    }
+    res.status(401).json({ error: 'Incorrect password.' });
+});
+
+// POST /api/admin/logout
+router.post('/admin/logout', (req, res) => {
+    req.session.destroy(() => res.json({ message: 'Logged out.' }));
+});
+
+// GET /api/admin/status
+router.get('/admin/status', (req, res) => {
+    res.json({ authenticated: Boolean(req.session && req.session.isAdmin) });
+});
+
+// ---------- Admin moderation (requires login) ----------
 
 // GET /api/admin/pending
-router.get('/admin/pending', async (req, res) => {
+router.get('/admin/pending', requireAdmin, async (req, res) => {
     try {
         const [rows] = await pool.execute(`
             SELECT id, title, prep_time, created_at FROM recipes
@@ -249,7 +308,7 @@ router.get('/admin/pending', async (req, res) => {
 });
 
 // POST /api/admin/approve/:id
-router.post('/admin/approve/:id', async (req, res) => {
+router.post('/admin/approve/:id', requireAdmin, async (req, res) => {
     try {
         const id = Number(req.params.id);
         if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid recipe id.' });
@@ -264,8 +323,12 @@ router.post('/admin/approve/:id', async (req, res) => {
 
 // ---------- POST /api/help ----------
 // Simple contact form (name, email, problem description).
-router.post('/help', async (req, res) => {
+router.post('/help', submitLimiter, async (req, res) => {
     try {
+        if (isHoneypotTripped(req)) {
+            return res.status(201).json({ message: 'Thanks — we received your message and will get back to you soon.' });
+        }
+
         const name = String(req.body.name || '').trim();
         const email = String(req.body.email || '').trim();
         const problem = String(req.body.problem || '').trim();

@@ -75,6 +75,7 @@ form.addEventListener('submit', async (e) => {
     const formData = new FormData();
     formData.append('title', title);
     formData.append('instructions', instructions);
+    formData.append('website', document.getElementById('website').value); // honeypot
     const prepTime = document.getElementById('prep_time').value;
     if (prepTime) formData.append('prep_time', prepTime);
     formData.append('ingredients', JSON.stringify(ingredients));

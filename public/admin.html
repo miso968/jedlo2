@@ -16,54 +16,30 @@
 </header>
 
 <div class="form-card" style="max-width:720px;">
-  <h1>Pending recipes</h1>
-  <p style="color:var(--ink-soft); font-size:.85rem; margin-top:-.5rem;">
-    This page has no login yet — see the note in README.md before putting it online.
-  </p>
-  <div id="pending-list">Loading…</div>
+  <div id="login-view">
+    <h1>Admin login</h1>
+    <form id="login-form" novalidate>
+      <div class="field" id="field-password">
+        <label for="password">Password</label>
+        <input type="password" id="password" required />
+        <div class="error">Incorrect password.</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="login-btn">Log in</button>
+      <div class="form-message" id="login-message"></div>
+    </form>
+  </div>
+
+  <div id="pending-view" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h1 style="margin:0;">Pending recipes</h1>
+      <button class="btn btn-secondary" id="logout-btn">Log out</button>
+    </div>
+    <div id="pending-list" style="margin-top:1.2rem;">Loading…</div>
+  </div>
 </div>
 
 <script src="/js/config.js"></script>
 <script src="/js/api.js"></script>
-<script>
-async function load() {
-  const el = document.getElementById('pending-list');
-  try {
-    const rows = await apiGet('/api/admin/pending');
-    if (rows.length === 0) {
-      el.innerHTML = '<p style="color:var(--ink-soft);">Nothing waiting for review.</p>';
-      return;
-    }
-    el.innerHTML = '';
-    rows.forEach(r => {
-      const row = document.createElement('div');
-      row.className = 'admin-row';
-      row.innerHTML = `
-        <div>
-          <div class="title">${escapeHtml(r.title)}</div>
-          <div class="meta">${r.prep_time ? r.prep_time + ' min · ' : ''}submitted ${escapeHtml(r.created_at)}</div>
-        </div>
-        <button class="btn btn-primary" data-id="${r.id}">Approve</button>
-      `;
-      row.querySelector('button').addEventListener('click', async (e) => {
-        e.target.disabled = true;
-        e.target.textContent = 'Approving…';
-        try {
-          await apiPost(`/api/admin/approve/${r.id}`);
-          row.remove();
-        } catch (err) {
-          alert(err.message);
-          e.target.disabled = false;
-          e.target.textContent = 'Approve';
-        }
-      });
-      el.appendChild(row);
-    });
-  } catch (err) {
-    el.innerHTML = `<p>${escapeHtml(err.message)}</p>`;
-  }
-}
-load();
-</script>
+<script src="/js/admin.js"></script>
 </body>
 </html>
