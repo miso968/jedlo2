@@ -71,16 +71,24 @@ document.addEventListener('click', (e) => {
 
 function renderMatchMeter(matched, total) {
   const pct = total > 0 ? Math.round((matched / total) * 100) : 0;
+  const ringColor = pct >= 100 ? 'var(--herb)' : 'var(--turmeric)';
   return `
-    <div class="match-meter">
-      <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
-      <span class="label">${matched}/${total} matched</span>
+    <div class="jar-cap" style="background:conic-gradient(${ringColor} ${pct}%, var(--surface-hi) 0)">
+      <div class="jar-cap-inner">${matched}/${total}</div>
     </div>`;
 }
 
 function renderRecipes(recipes, { withMatch } = {}) {
   if (recipes.length === 0) {
-    resultsEl.innerHTML = '<div class="empty-state">No recipes found for those ingredients yet. Try removing one, or <a href="/add-recipe.html">add your own</a>.</div>';
+    resultsEl.innerHTML = `
+      <div class="empty-state">
+        <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="14" y="18" width="24" height="26" rx="4" stroke="var(--ink-soft)" stroke-width="2"/>
+          <path d="M20 18v-4a6 6 0 0 1 12 0v4" stroke="var(--ink-soft)" stroke-width="2"/>
+          <circle cx="26" cy="30" r="4" stroke="var(--turmeric)" stroke-width="2"/>
+        </svg>
+        <div>No recipes found for those ingredients yet. Try removing one, or <a href="/add-recipe.html">add your own</a>.</div>
+      </div>`;
     return;
   }
   resultsEl.innerHTML = '';
@@ -92,11 +100,13 @@ function renderRecipes(recipes, { withMatch } = {}) {
     card.className = 'recipe-card';
     card.href = `/recipe.html?id=${r.id}`;
     card.innerHTML = `
-      <img src="${escapeHtml(resolveImage(r.image))}" alt="${escapeHtml(r.title)}" onerror="this.onerror=null;this.src='uploads/default.png'">
+      <div class="img-wrap">
+        <img src="${escapeHtml(resolveImage(r.image))}" alt="${escapeHtml(r.title)}" onerror="this.onerror=null;this.src='uploads/default.png'">
+        ${withMatch ? renderMatchMeter(r.matched_count, r.total_count) : ''}
+      </div>
       <div class="body">
         <h3>${escapeHtml(r.title)}</h3>
         <div class="meta">${r.prep_time ? r.prep_time + ' min' : 'Prep time not listed'}</div>
-        ${withMatch ? renderMatchMeter(r.matched_count, r.total_count) : ''}
       </div>
     `;
     grid.appendChild(card);
